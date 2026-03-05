@@ -1,0 +1,36 @@
+---
+splunk:
+  conf:
+    - key: indexes
+      value:
+        directory: /opt/splunk/etc/system/local
+        content:
+          devsample:
+            homePath: $SPLUNK_DB/devsample/db
+            coldPath: $SPLUNK_DB/devsample/colddb
+            thawedPath: $SPLUNK_DB/devsample/thaweddb
+          podmania:
+            homePath: $SPLUNK_DB/podmania/db
+            coldPath: $SPLUNK_DB/podmania/colddb
+            thawedPath: $SPLUNK_DB/podmania/thaweddb
+    - key: inputs
+      value:
+        directory: /opt/splunk/etc/system/local
+        content:
+          "splunktcp://9997":
+            disabled: 0
+          "monitor:///data/sample/events.log":
+            disabled: 0
+            index: devsample
+            sourcetype: devsample:json
+            crcSalt: <SOURCE>
+    - key: props
+      value:
+        directory: /opt/splunk/etc/system/local
+        content:
+          "devsample:json":
+            INDEXED_EXTRACTIONS: JSON
+            KV_MODE: none
+            SHOULD_LINEMERGE: false
+            NO_BINARY_CHECK: true
+            TRUNCATE: 0

@@ -1,0 +1,61 @@
+# Uses the official Splunk Enterprise container image.
+# If Docker on Apple Silicon reports an image/architecture mismatch, uncomment:
+# platform: linux/amd64
+
+services:
+  splunk:
+    image: splunk/splunk:10.2.1
+    container_name: splunk-dev
+    hostname: splunk-dev
+    restart: unless-stopped
+    environment:
+      SPLUNK_START_ARGS: --accept-license
+      SPLUNK_GENERAL_TERMS: --accept-sgt-current-at-splunk-com
+      SPLUNK_PASSWORD: ${SPLUNK_PASSWORD:-ChangeMe123!}
+    ports:
+      - "8000:8000"
+      - "8089:8089"
+      - "9997:9997"
+    volumes:
+      - ./splunk/defaults/default.yml:/tmp/defaults/default.yml:ro
+      - sample-logs:/data/sample:ro
+      - splunk-etc:/opt/splunk/etc
+      - splunk-var:/opt/splunk/var
+    healthcheck:
+      test: ["CMD", "/opt/splunk/bin/splunk", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
+
+  sample-log-writer:
+    image: alpine:3.20
+    container_name: splunk-sample-log-writer
+    restart: unless-stopped
+    command:
+      - /bin/sh
+      - -c
+      - |
+        mkdir -p /data/sample
+        i=0
+        while true; do
+          ts=$$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          if [ $$((i % 5)) -eq 0 ]; then
+            level="ERROR"
+            ok=false
+          else
+            level="INFO"
+            ok=true
+          fi
+          duration=$$((100 + (i % 7) * 25))
+          printf '{"timestamp":"%s","service":"checkout","env":"local","event":"sample_request","seq":%s,"level":"%s","ok":%s,"duration_ms":%s}\n' "$$ts" "$$i" "$$level" "$$ok" "$$duration" >> /data/sample/events.log
+          i=$$((i + 1))
+          sleep 2
+        done
+    volumes:
+      - sample-logs:/data/sample
+
+volumes:
+  sample-logs:
+  splunk-etc:
+  splunk-var:
